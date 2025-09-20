@@ -21,76 +21,34 @@ const imageCommand = async (m, sock) => {
       await sock.sendMessage(m.from, { react: { text: '⏳', key: m.key } });
       await sock.sendMessage(m.from, { text: `🔍 Searching for *${query}*...` });
 
-      // Try multiple API endpoints as fallback
-      const apiEndpoints = [
-        `https://apis.davidcyriltech.my.id/googleimage?query=${encodeURIComponent(query)}`,
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5`,
-        `https://pixabay.com/api/?key=your-pixabay-key&q=${encodeURIComponent(query)}&image_type=photo&per_page=5`
-      ];
-
-      let response = null;
-      let images = [];
-      let apiIndex = 0;
-
-      // Try each API endpoint until one works
-      while (apiIndex < apiEndpoints.length && images.length === 0) {
-        try {
-          const currentEndpoint = apiEndpoints[apiIndex];
-          console.log(`Trying API endpoint: ${currentEndpoint}`);
-          
-          const config = {
-            timeout: 10000,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-          };
-          
-          // Add API key for Pexels if needed
-          if (currentEndpoint.includes('api.pexels.com')) {
-            config.headers['Authorization'] = 'your-pexels-api-key'; // Replace with actual key
-          }
-          
-          response = await axios.get(currentEndpoint, config);
-          
-          // Parse response based on API endpoint
-          if (currentEndpoint.includes('api.princetechn.com')) {
-            if (response.data && Array.isArray(response.data)) {
-              images = response.data;
-            } else if (response.data && response.data.images && Array.isArray(response.data.images)) {
-              images = response.data.images;
-            } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
-              images = response.data.results;
-            }
-          } 
-          else if (currentEndpoint.includes('api.pexels.com')) {
-            if (response.data && response.data.photos && Array.isArray(response.data.photos)) {
-              images = response.data.photos.map(photo => ({
-                url: photo.src.original,
-                alt: photo.photographer
-              }));
-            }
-          }
-          else if (currentEndpoint.includes('pixabay.com')) {
-            if (response.data && response.data.hits && Array.isArray(response.data.hits)) {
-              images = response.data.hits.map(hit => ({
-                url: hit.largeImageURL || hit.webformatURL,
-                alt: hit.tags
-              }));
-            }
-          }
-          
-          console.log(`API ${apiIndex + 1} returned ${images.length} images`);
-        } catch (apiError) {
-          console.warn(`API endpoint ${apiIndex + 1} failed:`, apiError.message);
-          // Continue to next API
+      // Primary API - David Cyril API
+      const apiUrl = `https://apis.davidcyriltech.my.id/googleimage?query=${encodeURIComponent(query)}`;
+      
+      console.log(`Using David Cyril API: ${apiUrl}`);
+      
+      const response = await axios.get(apiUrl, {
+        timeout: 15000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-        
-        apiIndex++;
+      });
+      
+      let images = [];
+      
+      // Parse response from David Cyril API
+      if (response.data && Array.isArray(response.data)) {
+        images = response.data;
+      } else if (response.data && response.data.images && Array.isArray(response.data.images)) {
+        images = response.data.images;
+      } else if (response.data && response.data.results && Array.isArray(response.data.results)) {
+        images = response.data.results;
+      } else {
+        throw new Error('Unexpected API response format');
       }
 
-      // If all APIs failed
+      // If no images found
       if (images.length === 0) {
-        throw new Error('All image APIs failed or returned no results');
+        throw new Error('No images found for your query');
       }
 
       const maxImages = Math.min(images.length, 5);
@@ -99,7 +57,9 @@ const imageCommand = async (m, sock) => {
       let sentCount = 0;
       for (const [index, image] of images.slice(0, maxImages).entries()) {
         try {
-          const imageUrl = image.url || image.imageUrl || image.link || image.src || image.largeImageURL || image.webformatURL;
+          // Extract image URL from different possible response formats
+          const imageUrl = image.url || image.imageUrl || image.link || image.src || 
+                          image.largeImageURL || image.webformatURL || image.original;
           
           if (!imageUrl) {
             console.warn(`Image missing URL:`, image);
@@ -110,7 +70,7 @@ const imageCommand = async (m, sock) => {
 ╭───[ *ɪᴍᴀɢᴇ sᴇᴀʀᴄʜ* ]───
 ├ *ǫᴜᴇʀʏ*: ${query} 🔍
 ├ *ʀᴇsᴜʟᴛ*: ${index + 1} of ${maxImages} 🖼️
-╰───[ *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴄᴀsᴇʏʀʜᴏᴅᴇs* ]───`.trim();
+╰───[ *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴅᴀᴠɪᴅ ᴄʏʀɪʟ ᴀᴘɪ* ]───`.trim();
 
           await sock.sendMessage(
             m.from,
@@ -148,8 +108,10 @@ const imageCommand = async (m, sock) => {
       
       if (error.message.includes('timeout')) {
         errorMsg = '❌ Request timed out ⏰';
-      } else if (error.message.includes('All image APIs failed')) {
-        errorMsg = '❌ All image services are currently unavailable';
+      } else if (error.message.includes('No images found')) {
+        errorMsg = '❌ No images found for your search query';
+      } else if (error.message.includes('Unexpected API response')) {
+        errorMsg = '❌ Image API returned unexpected format';
       } else if (error.response && error.response.status === 404) {
         errorMsg = '❌ Image search service unavailable';
       } else if (error.response && error.response.status) {
