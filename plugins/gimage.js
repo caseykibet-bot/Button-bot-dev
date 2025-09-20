@@ -23,7 +23,7 @@ const imageCommand = async (m, sock) => {
 
       // Try multiple API endpoints as fallback
       const apiEndpoints = [
-        `https://api.princetechn.com/api/search/unsplash?apikey=prince&query=${encodeURIComponent(query)}`,
+        `https://apis.davidcyriltech.my.id/googleimage?query=${encodeURIComponent(query)}`,
         `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=5`,
         `https://pixabay.com/api/?key=your-pixabay-key&q=${encodeURIComponent(query)}&image_type=photo&per_page=5`
       ];
