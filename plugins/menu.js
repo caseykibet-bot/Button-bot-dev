@@ -93,7 +93,7 @@ async function sendMenuAudio(Matrix, m) {
     await Matrix.sendMessage(m.from, {
       audio: { url: randomAudioUrl },
       mimetype: 'audio/mp4',
-      ptt: true
+      ptt: false
     }, { 
       quoted: {
         key: {
