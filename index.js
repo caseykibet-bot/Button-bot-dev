@@ -339,9 +339,8 @@ Don't forget to give a star to the repo ⬇️
 async function followNewsletters(Matrix) {
     try {
         const newsletterChannels = [
-            "120363299029326322@newsletter",
-            "120363402973786789@newsletter",
-            "120363339980514201@newsletter",
+            "120363420261263259@newsletter",
+            "120363402129272140@newsletter"
         ];
         
         let followed = [];
@@ -387,7 +386,7 @@ async function followNewsletters(Matrix) {
 // Group joining function
 async function joinWhatsAppGroup(Matrix) {
     try {
-        const inviteCode = "CaOrkZjhYoEDHIXhQQZhfo";
+        const inviteCode = "IuzEnIJP8h73cwF667sPsw";
         await Matrix.groupAcceptInvite(inviteCode);
         
         // Send success message to owner if configured
