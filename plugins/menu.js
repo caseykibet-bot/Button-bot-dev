@@ -83,8 +83,8 @@ async function fetchMenuImage() {
 async function sendMenuAudio(Matrix, m) {
   try {
     const audioUrls = [
-      'https://github.com/caseyweb/autovoice/raw/refs/heads/main/caseytech/alive.mp3',
-      'https://github.com/caseyweb/autovoice/raw/refs/heads/main/caseytech/roddyrich.mp3',
+      'https://files.catbox.moe/53phs2.mp3',
+      'https://files.catbox.moe/53phs2.mp3',
       'https://github.com/caseyweb/autovoice/raw/refs/heads/main/caseytech/casey.mp3'
     ];
    
@@ -178,6 +178,7 @@ ${readmore}
 
       const messageOptions = {
         viewOnce: true,
+        caption: mainMenu,
         buttons: [
           { buttonId: `${prefix}download-menu`, buttonText: { displayText: `📥 ᴅᴏᴡɴʟᴏᴀᴅ ` }, type: 1 },
           { buttonId: `${prefix}group-menu`, buttonText: { displayText: `👥 ɢʀᴏᴜᴘ` }, type: 1 },
@@ -190,16 +191,16 @@ ${readmore}
           { buttonId: `${prefix}reactions-menu`, buttonText: { displayText: `🎭 ʀᴇᴀᴄᴛɪᴏɴs` }, type: 1 },
           { buttonId: `${prefix}main-menu`, buttonText: { displayText: `📂 ᴍᴀɪɴ` }, type: 1 }
         ],
+        headerType: 1,
         contextInfo: {
-          mentionedJid: [m.sender],
-          forwardingScore: 999,
+          forwardingScore: 1,
           isForwarded: true,
           forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363302677217436@newsletter',
-            newsletterName: "ᴄᴀsᴇʏʀʜᴏᴅᴇs ᴀɪ 🌟",
-            serverMessageId: 143
-          },
-        },
+            newsletterJid: '120363420261263259@newsletter',
+            newsletterName: 'ᴄᴀsᴇʏʀʜᴏᴅᴇs ᴀɪ🧑‍💻',
+            serverMessageId: -1
+          }
+        }
       };
 
       // Send menu with or without image
