@@ -49,7 +49,7 @@ async function downloadSessionData() {
             return false;
         }
 
-        const sessdata = config.SESSION_ID.split("Caseyrhodes~")[1];
+        const sessdata = config.SESSION_ID.split("IK~")[1];
 
         if (!sessdata || !sessdata.includes("#")) {
             return false;
