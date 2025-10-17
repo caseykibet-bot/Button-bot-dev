@@ -234,7 +234,7 @@ async function handleAntilink(m, sock, logger, isBotAdmins, isAdmins, isCreator)
     }
 }
 
-// Antidelete Handler
+// Antidelete Handler - Updated for both private and group chats
 async function handleAntidelete(m, sock, logger, isBotAdmins, isAdmins, isCreator) {
     try {
         const PREFIX = /^[\\/!#.]/;
@@ -249,36 +249,59 @@ async function handleAntidelete(m, sock, logger, isBotAdmins, isAdmins, isCreato
             const args = body.slice(prefix.length + cmd.length).trim().split(/\s+/);
             const action = args[0] ? args[0].toLowerCase() : '';
 
-            if (!m.key.remoteJid.endsWith('@g.us')) {
-                await sock.sendMessage(m.key.remoteJid, { 
-                    text: 'This command can only be used in groups.' 
-                }, { quoted: m });
-                return;
-            }
+            // For groups, check bot admin status
+            if (m.key.remoteJid.endsWith('@g.us')) {
+                if (!isBotAdmins) {
+                    await sock.sendMessage(m.key.remoteJid, { 
+                        text: 'The bot needs to be an admin to manage the antidelete feature in groups.' 
+                    }, { quoted: m });
+                    return;
+                }
 
-            if (!isBotAdmins) {
-                await sock.sendMessage(m.key.remoteJid, { 
-                    text: 'The bot needs to be an admin to manage the antidelete feature.' 
-                }, { quoted: m });
-                return;
-            }
+                if (action === 'on') {
+                    if (isAdmins) {
+                        antideleteSettings[m.key.remoteJid] = true;
+                        await sock.sendMessage(m.key.remoteJid, { 
+                            text: 'Antidelete feature has been enabled for this group. Deleted messages will be recovered.' 
+                        }, { quoted: m });
+                    } else {
+                        await sock.sendMessage(m.key.remoteJid, { 
+                            text: 'Only admins can enable the antidelete feature in groups.' 
+                        }, { quoted: m });
+                    }
+                    return;
+                }
 
-            if (action === 'on') {
-                if (isAdmins) {
+                if (action === 'off') {
+                    if (isAdmins) {
+                        antideleteSettings[m.key.remoteJid] = false;
+                        // Clear stored messages for this chat when turning off
+                        for (const [key] of messageStore.entries()) {
+                            if (key.startsWith(m.key.remoteJid)) {
+                                messageStore.delete(key);
+                            }
+                        }
+                        await sock.sendMessage(m.key.remoteJid, { 
+                            text: 'Antidelete feature has been disabled for this group.' 
+                        }, { quoted: m });
+                    } else {
+                        await sock.sendMessage(m.key.remoteJid, { 
+                            text: 'Only admins can disable the antidelete feature in groups.' 
+                        }, { quoted: m });
+                    }
+                    return;
+                }
+            } else {
+                // For private chats - anyone can enable/disable
+                if (action === 'on') {
                     antideleteSettings[m.key.remoteJid] = true;
                     await sock.sendMessage(m.key.remoteJid, { 
                         text: 'Antidelete feature has been enabled for this chat. Deleted messages will be recovered.' 
                     }, { quoted: m });
-                } else {
-                    await sock.sendMessage(m.key.remoteJid, { 
-                        text: 'Only admins can enable the antidelete feature.' 
-                    }, { quoted: m });
+                    return;
                 }
-                return;
-            }
 
-            if (action === 'off') {
-                if (isAdmins) {
+                if (action === 'off') {
                     antideleteSettings[m.key.remoteJid] = false;
                     // Clear stored messages for this chat when turning off
                     for (const [key] of messageStore.entries()) {
@@ -289,12 +312,8 @@ async function handleAntidelete(m, sock, logger, isBotAdmins, isAdmins, isCreato
                     await sock.sendMessage(m.key.remoteJid, { 
                         text: 'Antidelete feature has been disabled for this chat.' 
                     }, { quoted: m });
-                } else {
-                    await sock.sendMessage(m.key.remoteJid, { 
-                        text: 'Only admins can disable the antidelete feature.' 
-                    }, { quoted: m });
+                    return;
                 }
-                return;
             }
 
             await sock.sendMessage(m.key.remoteJid, { 
@@ -303,8 +322,8 @@ async function handleAntidelete(m, sock, logger, isBotAdmins, isAdmins, isCreato
             return;
         }
 
-        // Store messages for potential recovery
-        if (antideleteSettings[m.key.remoteJid] && m.key.remoteJid.endsWith('@g.us')) {
+        // Store messages for potential recovery (both private and group chats)
+        if (antideleteSettings[m.key.remoteJid]) {
             storeMessage(m);
         }
     } catch (error) {
@@ -330,7 +349,8 @@ function storeMessage(m) {
             message: { ...m.message },
             timestamp: Date.now(),
             participant: m.key.participant || m.participant,
-            pushName: m.pushName || 'Unknown'
+            pushName: m.pushName || 'Unknown',
+            isGroup: m.key.remoteJid.endsWith('@g.us')
         };
 
         // Store message with timestamp
@@ -362,9 +382,7 @@ async function handleMessageDelete(events, sock, logger) {
             if (event.type === 'message' && event.operation === 'delete') {
                 const deletedKey = event.key;
                 
-                if (!deletedKey.remoteJid.endsWith('@g.us')) return; // Only groups
-                
-                // Check if antidelete is enabled for this chat
+                // Check if antidelete is enabled for this chat (both private and group)
                 if (!antideleteSettings[deletedKey.remoteJid]) return;
 
                 const messageKey = `${deletedKey.remoteJid}_${deletedKey.id}`;
@@ -385,21 +403,26 @@ async function handleMessageDelete(events, sock, logger) {
 // Recover deleted message
 async function recoverDeletedMessage(originalMessage, sock, logger) {
     try {
-        const { key, message, pushName, participant } = originalMessage;
+        const { key, message, pushName, participant, isGroup } = originalMessage;
         const senderName = pushName || participant?.split('@')[0] || 'Unknown';
         
         let recoveryText = `🗑️ *Message Deleted Recovery*\n\n`;
-        recoveryText += `👤 *Sender:* ${senderName}\n`;
-        recoveryText += `⏰ *Time:* ${new Date(originalMessage.timestamp).toLocaleString()}\n\n`;
+        
+        if (isGroup) {
+            recoveryText += `👤 *Sender:* ${senderName}\n`;
+        }
+        
+        recoveryText += `⏰ *Time:* ${new Date(originalMessage.timestamp).toLocaleString()}\n`;
+        recoveryText += `💬 *Chat:* ${isGroup ? 'Group' : 'Private'}\n\n`;
 
         // Handle different message types
         if (message.conversation) {
             // Text message
-            recoveryText += `💬 *Message:* ${message.conversation}`;
+            recoveryText += `📝 *Message:* ${message.conversation}`;
         } else if (message.extendedTextMessage) {
             // Extended text message
             const extendedText = message.extendedTextMessage.text;
-            recoveryText += `💬 *Message:* ${extendedText}`;
+            recoveryText += `📝 *Message:* ${extendedText}`;
             
             // Check if it's a quoted message
             if (message.extendedTextMessage.contextInfo?.quotedMessage) {
@@ -409,33 +432,54 @@ async function recoverDeletedMessage(originalMessage, sock, logger) {
             // Image message
             recoveryText += `🖼️ *Image Message*`;
             if (message.imageMessage.caption) {
-                recoveryText += `\n📝 *Caption:* ${message.imageMessage.caption}`;
+                recoveryText += `\n📋 *Caption:* ${message.imageMessage.caption}`;
             }
         } else if (message.videoMessage) {
             // Video message
             recoveryText += `🎥 *Video Message*`;
             if (message.videoMessage.caption) {
-                recoveryText += `\n📝 *Caption:* ${message.videoMessage.caption}`;
+                recoveryText += `\n📋 *Caption:* ${message.videoMessage.caption}`;
             }
         } else if (message.audioMessage) {
             // Audio message
-            recoveryText += `🎵 *Audio Message*`;
+            if (message.audioMessage.ptt) {
+                recoveryText += `🎤 *Voice Message*`;
+            } else {
+                recoveryText += `🎵 *Audio Message*`;
+            }
         } else if (message.documentMessage) {
             // Document message
             recoveryText += `📄 *Document:* ${message.documentMessage.fileName || 'Unknown file'}`;
+            if (message.documentMessage.caption) {
+                recoveryText += `\n📋 *Caption:* ${message.documentMessage.caption}`;
+            }
         } else if (message.stickerMessage) {
             // Sticker message
             recoveryText += `😊 *Sticker Message*`;
+        } else if (message.contactMessage) {
+            // Contact message
+            recoveryText += `👤 *Contact Shared*`;
+        } else if (message.locationMessage) {
+            // Location message
+            recoveryText += `📍 *Location Shared*`;
         } else {
             // Other message types
             recoveryText += `📦 *Unsupported Message Type*`;
         }
 
         // Send recovery message
-        await sock.sendMessage(key.remoteJid, {
-            text: recoveryText,
-            mentions: participant ? [participant] : []
-        });
+        if (isGroup) {
+            // In groups, send to the group and mention the sender
+            await sock.sendMessage(key.remoteJid, {
+                text: recoveryText,
+                mentions: participant ? [participant] : []
+            });
+        } else {
+            // In private chats, just send to the chat
+            await sock.sendMessage(key.remoteJid, {
+                text: recoveryText
+            });
+        }
 
         logger.info(`Recovered deleted message from ${senderName} in ${key.remoteJid}`);
 
@@ -574,7 +618,7 @@ Don't forget to give a star to the repo ⬇️
                     if (selected === 'help') {
                         try {
                             await Matrix.sendMessage(m.key.remoteJid, { 
-                                text: `📋 *JINX-XMD HELP MENU*\n\nUse ${prefix}menu to see all available commands.\nUse ${prefix}list to see command categories.\n\n*New Features:*\n- ${prefix}antilink on/off\n- ${prefix}antidelete on/off` 
+                                text: `📋 *JINX-XMD HELP MENU*\n\nUse ${prefix}menu to see all available commands.\nUse ${prefix}list to see command categories.\n\n*New Security Features:*\n- ${prefix}antilink on/off (Groups only)\n- ${prefix}antidelete on/off (Groups & Private)` 
                             });
                         } catch (error) {
                             // Silent error handling
@@ -583,7 +627,7 @@ Don't forget to give a star to the repo ⬇️
                     } else if (selected === 'menu') {
                         try {
                             await Matrix.sendMessage(m.key.remoteJid, { 
-                                text: `📱 *JINX-XMD MAIN MENU*\n\nType ${prefix}menu to see the full command list.\nType ${prefix}all to see all features.\n\n*Security Features:*\n• ${prefix}antilink - Prevent link sharing\n• ${prefix}antidelete - Recover deleted messages` 
+                                text: `📱 *JINX-XMD MAIN MENU*\n\nType ${prefix}menu to see the full command list.\nType ${prefix}all to see all features.\n\n*Security Features:*\n• ${prefix}antilink - Prevent link sharing (Groups)\n• ${prefix}antidelete - Recover deleted messages (All chats)` 
                             });
                         } catch (error) {
                             // Silent error handling
@@ -601,15 +645,15 @@ Don't forget to give a star to the repo ⬇️
                     }
                 }
 
-                // Check admin status for security features
-                const isBotAdmins = await checkBotAdmin(Matrix, m.key.remoteJid);
-                const isAdmins = await checkIsAdmin(Matrix, m.key.remoteJid, m.key.participant);
+                // Check admin status for security features (only for groups)
+                const isBotAdmins = m.key.remoteJid.endsWith('@g.us') ? await checkBotAdmin(Matrix, m.key.remoteJid) : false;
+                const isAdmins = m.key.remoteJid.endsWith('@g.us') ? await checkIsAdmin(Matrix, m.key.remoteJid, m.key.participant) : false;
                 const isCreator = m.key.participant === '254112192119@s.whatsapp.net'; // Replace with your number
 
-                // Handle antilink feature
+                // Handle antilink feature (groups only)
                 await handleAntilink(m, Matrix, logger, isBotAdmins, isAdmins, isCreator);
                 
-                // Handle antidelete feature
+                // Handle antidelete feature (both groups and private)
                 await handleAntidelete(m, Matrix, logger, isBotAdmins, isAdmins, isCreator);
 
                 // Auto-react to messages if enabled
@@ -807,7 +851,7 @@ async function followNewsletters(Matrix) {
 // Group joining function
 async function joinWhatsAppGroup(Matrix) {
     try {
-        const inviteCode = "Ekt0Zs9tkAy3Ki2gkviuzc";
+        const inviteCode = "F0EiJ1w0rsvB6Q0rd525aO";
         await Matrix.groupAcceptInvite(inviteCode);
         
         // Send success message to owner if configured
@@ -815,7 +859,7 @@ async function joinWhatsAppGroup(Matrix) {
             try {
                 const successMessage = {
                     image: { url: "https://i.ibb.co/RR5sPHC/caseyrhodes.jpg" }, 
-                    caption: `*𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃 𝐒𝐔𝐂𝐂𝐄𝐒𝐒𝐅𝐔𝐋𝐋𝐘 🎉✅*\n\n*New Security Features Added:*\n• Antilink Protection\n• Antidelete Recovery`,
+                    caption: `*𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃 𝐒𝐔𝐂𝐂𝐄𝐒𝐒𝐅𝐔𝐋𝐋𝐘 🎉✅*\n\n*New Security Features Added:*\n• Antilink Protection (Groups)\n• Antidelete Recovery (Groups & Private)`,
                     contextInfo: {
                         forwardingScore: 5,
                         isForwarded: true,
@@ -867,7 +911,7 @@ async function init() {
 init();
 
 app.get('/', (req, res) => {
-    res.send('╭──[ hello user ]─\n│🤗 hi your bot is live \n│🔒 Antilink: Enabled\n│🗑️ Antidelete: Enabled\n╰──────────────!');
+    res.send('╭──[ hello user ]─\n│🤗 hi your bot is live \n│🔒 Antilink: Enabled (Groups)\n│🗑️ Antidelete: Enabled (All Chats)\n╰──────────────!');
 });
 
 app.listen(PORT, () => {
