@@ -6,16 +6,17 @@ export const handleAntilink = async (m, sock, logger, isBotAdmins, isAdmins, isC
     try {
         const PREFIX = /^[\\/!#.]/;
         const isCOMMAND = (body) => PREFIX.test(body);
-        const prefixMatch = isCOMMAND(m.body) ? m.body.match(PREFIX) : null;
+        const prefixMatch = isCOMMAND(m.message?.conversation || '') ? (m.message?.conversation || '').match(PREFIX) : null;
         const prefix = prefixMatch ? prefixMatch[0] : '/';
-        const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
+        const body = m.message?.conversation || m.message?.extendedTextMessage?.text || '';
+        const cmd = body.startsWith(prefix) ? body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
 
         // Handle antilink command
         if (cmd === 'antilink') {
-            const args = m.body.slice(prefix.length + cmd.length).trim().split(/\s+/);
+            const args = body.slice(prefix.length + cmd.length).trim().split(/\s+/);
             const action = args[0] ? args[0].toLowerCase() : '';
 
-            if (!m.isGroup) {
+            if (!m.key.remoteJid.endsWith('@g.us')) {
                 await sock.sendMessage(m.key.remoteJid, { 
                     text: 'This command can only be used in groups.' 
                 }, { quoted: m });
@@ -64,8 +65,10 @@ export const handleAntilink = async (m, sock, logger, isBotAdmins, isAdmins, isC
         }
 
         // Handle link detection
-        if (antilinkSettings[m.key.remoteJid]) {
-            if (m.body && m.body.match(/(chat\.whatsapp\.com\/|https?:\/\/)/gi)) {
+        if (antilinkSettings[m.key.remoteJid] && m.key.remoteJid.endsWith('@g.us')) {
+            const messageText = body;
+            
+            if (messageText && messageText.match(/(chat\.whatsapp\.com\/|https?:\/\/)/gi)) {
                 if (!isBotAdmins) {
                     await sock.sendMessage(m.key.remoteJid, { 
                         text: `The bot needs to be an admin to remove links.` 
@@ -79,7 +82,7 @@ export const handleAntilink = async (m, sock, logger, isBotAdmins, isAdmins, isC
                     groupInviteCode = await sock.groupInviteCode(m.key.remoteJid);
                     const gclink = `https://chat.whatsapp.com/${groupInviteCode}`;
                     const isLinkThisGc = new RegExp(gclink, 'i');
-                    const isgclink = isLinkThisGc.test(m.body);
+                    const isgclink = isLinkThisGc.test(messageText);
 
                     if (isgclink) {
                         await sock.sendMessage(m.key.remoteJid, { 
@@ -106,16 +109,28 @@ export const handleAntilink = async (m, sock, logger, isBotAdmins, isAdmins, isC
                     return;
                 }
 
+                // Get participant ID
+                const participant = m.key.participant || m.participant;
+                if (!participant) {
+                    logger.error('No participant found in message');
+                    return;
+                }
+
                 // Send warning message first
                 await sock.sendMessage(m.key.remoteJid, {
-                    text: `\`\`\`「 Group Link Detected 」\`\`\`\n\n@${m.key.participant.split("@")[0]}, please do not share group links in this group.`,
-                    mentions: [m.key.participant]
+                    text: `\`\`\`「 Group Link Detected 」\`\`\`\n\n@${participant.split("@")[0]}, please do not share group links in this group.`,
+                    mentions: [participant]
                 }, { quoted: m });
 
                 // Delete the link message
                 try {
                     await sock.sendMessage(m.key.remoteJid, {
-                        delete: m.key
+                        delete: {
+                            id: m.key.id,
+                            remoteJid: m.key.remoteJid,
+                            fromMe: false,
+                            participant: participant
+                        }
                     });
                 } catch (deleteError) {
                     logger.error('Error deleting message:', deleteError);
@@ -126,7 +141,7 @@ export const handleAntilink = async (m, sock, logger, isBotAdmins, isAdmins, isC
                     try {
                         await sock.groupParticipantsUpdate(
                             m.key.remoteJid, 
-                            [m.key.participant], 
+                            [participant], 
                             'remove'
                         );
                     } catch (kickError) {
@@ -142,7 +157,8 @@ export const handleAntilink = async (m, sock, logger, isBotAdmins, isAdmins, isC
         logger.error('Error in antilink handler:', error);
         
         // Send error message if it's a command
-        if (m.body && m.body.startsWith(prefix)) {
+        const body = m.message?.conversation || m.message?.extendedTextMessage?.text || '';
+        if (body && body.startsWith(prefix)) {
             await sock.sendMessage(m.key.remoteJid, { 
                 text: `An error occurred: ${error.message}` 
             }, { quoted: m });
