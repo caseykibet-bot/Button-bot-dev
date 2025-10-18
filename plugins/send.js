@@ -6,7 +6,7 @@ const handleGreeting = async (m, gss) => {
     const textLower = m.body?.toLowerCase() || '';
 
     const triggerWords = [
-      'send', 'statusdown', 'take', 'sent', 'giv', 'gib', 'upload',
+      'send', 'statusdown', 'take', 'save', 'giv', 'gib', 'upload',
       'send me', 'sent me', 'znt', 'snt', 'ayak', 'do', 'mee'
     ];
 
