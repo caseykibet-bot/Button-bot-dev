@@ -77,26 +77,11 @@ ${readmore}
     }
   }
 
-  // Handle button responses - This should be outside the command check
+  // Handle button responses
   if (m.message?.buttonsResponseMessage) {
     const selectedButtonId = m.message.buttonsResponseMessage.selectedButtonId;
     
-    if (selectedButtonId === `${prefix}owner`) {
-      try {
-        // Send owner information or contact details
-        await gss.sendMessage(
-          m.from,
-          {
-            text: "*👤 Owner Information*\n\n*Name:* Casey Rhodes\n*Contact:* Add owner contact details here\n*GitHub:* https://github.com/caseyweb\n\n*Feel free to contact for any queries!*"
-          },
-          { quoted: m }
-        );
-      } catch (error) {
-        console.error("Error sending owner info:", error);
-        m.reply("Failed to send owner information. Please try again.");
-      }
-    }
-    else if (selectedButtonId === `${prefix}joinchannel`) {
+    if (selectedButtonId === `${prefix}joinchannel`) {
       // Send channel link
       m.reply("Join our channel: https://whatsapp.com/channel/0029VakUEfb4o7qVdkwPk83E");
     }
