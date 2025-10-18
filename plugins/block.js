@@ -1,176 +1,99 @@
 import config from '../config.cjs';
 
-// Matrix to store pending block actions (userJid -> action data)
-const blockMatrix = new Map();
+const plugins = async (m, gss) => {
+  const prefix = config.PREFIX;
+  const bodyText = m.body || '';
+  const cmd = bodyText.startsWith(prefix) ? bodyText.slice(prefix.length).split(" ")[0].toLowerCase() : "";
 
-const block = async (m, Matrix) => {
-  try {
-    // Get the owner's JID from config
-    const ownerJid = config.OWNER_NUMBER.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
+  // Helper function to check if user is bot owner
+  const isBotOwner = (userId) => {
+    const botOwner = gss.user.id.split(":")[0] + "@s.whatsapp.net";
+    return userId === botOwner || userId === (config.OWNER_NUMBER || '') + '@s.whatsapp.net';
+  };
 
-    // Get the bot's paired JID (the device itself)
-    const botJid = Matrix.user.id.includes(':') ? Matrix.user.id.split(':')[0] : Matrix.user.id;
-
-    // Normalize sender JID
-    const senderJid = m.sender.includes(':') ? m.sender.split(':')[0] : m.sender;
-
-    // Check if the sender is the owner (either config number or the paired bot device)
-    const isOwner = senderJid === ownerJid || senderJid === botJid;
-
-    const prefix = config.PREFIX;
-    const body = m.body || '';
-    const cmd = body.startsWith(prefix) ? body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
-
-    // Handle confirmation responses
-    if (body.startsWith(`${prefix}confirm-block-`)) {
-      if (!isOwner) {
-        const buttonMessage = {
-          text: "*📛 THIS IS AN OWNER ONLY COMMAND*",
-          footer: "You don't have permission to use this command",
-          buttons: [
-            { buttonId: `${prefix}support`, buttonText: { displayText: "REQUEST SUPPORT" }, type: 1 }
-          ],
-          headerType: 1
-        };
-        return await Matrix.sendMessage(m.from, buttonMessage, { quoted: m });
-      }
-
-      const targetUser = body.split('-').pop();
-      const pendingAction = blockMatrix.get(senderJid);
-
-      if (pendingAction && pendingAction.action === 'block') {
-        // Execute the block
-        await Matrix.updateBlockStatus(pendingAction.userJid, "block");
-
-        // Remove from matrix
-        blockMatrix.delete(senderJid);
-
-        return await Matrix.sendMessage(m.from, { 
-          text: `✅ Successfully blocked *${targetUser}*` 
+  // Block Plugin
+  if (cmd === 'block') {
+    try {
+      if (!isBotOwner(m.sender)) {
+        await gss.sendMessage(m.from, { 
+          react: { text: "❌", key: m.key } 
+        });
+        return await gss.sendMessage(m.from, {
+          text: "_Only the bot owner can use this command._"
         }, { quoted: m });
       }
 
-      return await Matrix.sendMessage(m.from, { 
-        text: "❌ No pending block action or action expired" 
+      await gss.sendMessage(m.from, { 
+        react: { text: "✅", key: m.key } 
+      });
+      
+      await gss.sendMessage(m.from, { 
+        image: { url: `https://files.catbox.moe/y3j3kl.jpg` },  
+        caption: "*🚫 CHAT BLOCKED*\n\nThis chat has been blocked by the owner.",
+        buttons: [
+          { buttonId: `${prefix}unblock`, buttonText: { displayText: '🔓 Unblock Chat' }, type: 1 },
+          { buttonId: `${prefix}owner`, buttonText: { displayText: '👑 Owner Info' }, type: 1 }
+        ],
+        contextInfo: {
+          mentionedJid: [m.sender]
+        }
+      }, { quoted: m });
+      
+      // Actually block the chat after sending the message
+      await gss.updateBlockStatus(m.from, "block");
+      
+    } catch (error) {
+      console.error("Block command error:", error);
+      await gss.sendMessage(m.from, { 
+        react: { text: "❌", key: m.key } 
+      });
+      await gss.sendMessage(m.from, {
+        text: `_Failed to block this chat._\nError: ${error.message}_`
       }, { quoted: m });
     }
+  }
 
-    // Handle cancel responses
-    if (body === `${prefix}cancel`) {
-      if (blockMatrix.has(senderJid)) {
-        blockMatrix.delete(senderJid);
-        return await Matrix.sendMessage(m.from, { 
-          text: "❌ Block operation cancelled" 
+  // Unblock Plugin
+  if (cmd === 'unblock') {
+    try {
+      if (!isBotOwner(m.sender)) {
+        await gss.sendMessage(m.from, { 
+          react: { text: "❌", key: m.key } 
+        });
+        return await gss.sendMessage(m.from, {
+          text: "_Only the bot owner can use this command._"
         }, { quoted: m });
       }
-    }
 
-    // Only process block command
-    if (cmd !== 'block') return;
-
-    if (!isOwner) {
-      // Send a button message for non-owners
-      const buttonMessage = {
-        text: "*📛 THIS IS AN OWNER ONLY COMMAND*",
-        footer: "You don't have permission to use this command",
-        buttons: [
-          { buttonId: `${prefix}support`, buttonText: { displayText: "REQUEST SUPPORT" }, type: 1 }
-        ],
-        headerType: 1
-      };
-      return await Matrix.sendMessage(m.from, buttonMessage, { quoted: m });
-    }
-
-    const text = body.slice(prefix.length + cmd.length).trim();
-
-    // Check if any user is mentioned or quoted
-    if (!m.mentionedJid?.length && !m.quoted && !text) {
-      const buttonMessage = {
-        text: `Please mention a user, quote a message, or provide a number.\nUsage: ${prefix}block @user`,
-        footer: "Select an option below",
-        buttons: [
-          { buttonId: `${prefix}help block`, buttonText: { displayText: "HELP GUIDE" }, type: 1 },
-          { buttonId: `${prefix}listblock`, buttonText: { displayText: "BLOCKED LIST" }, type: 1 }
-        ],
-        headerType: 1
-      };
-      return await Matrix.sendMessage(m.from, buttonMessage, { quoted: m });
-    }
-
-    let users = m.mentionedJid?.[0] || (m.quoted ? m.quoted.sender : null);
-
-    // If no mentioned/quoted user, try to extract from text
-    if (!users && text) {
-      const numberMatch = text.match(/[\d+]+/g);
-      if (numberMatch) {
-        // Format the number properly for WhatsApp
-        users = numberMatch[0].replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-      }
-    }
-
-    if (!users) {
-      const buttonMessage = {
-        text: 'Could not identify a valid user to block.',
-        footer: "Please try again",
-        buttons: [
-          { buttonId: `${prefix}help block`, buttonText: { displayText: "HELP" }, type: 1 }
-        ],
-        headerType: 1
-      };
-      return await Matrix.sendMessage(m.from, buttonMessage, { quoted: m });
-    }
-
-    // Ensure the user JID is in the correct format
-    if (!users.endsWith('@s.whatsapp.net')) {
-      users = users.replace(/[^0-9]/g, '') + '@s.whatsapp.net';
-    }
-
-    const userName = users.split('@')[0];
-    const displayName = m.quoted?.pushName || userName;
-
-    // Create confirmation buttons before taking action
-    const confirmButtons = {
-      text: `Are you sure you want to block *${displayName}*?`,
-      footer: "This action cannot be undone",
-      buttons: [
-        { buttonId: `${prefix}confirm-block-${userName}`, buttonText: { displayText: "YES, BLOCK" }, type: 1 },
-        { buttonId: `${prefix}cancel`, buttonText: { displayText: "CANCEL" }, type: 1 }
-      ],
-      headerType: 1
-    };
-
-    // Store the pending action in the matrix
-    blockMatrix.set(senderJid, {
-      action: 'block',
-      userJid: users,
-      timestamp: Date.now(),
-      userName: userName
-    });
-
-    // Clean up old pending actions (older than 5 minutes)
-    const now = Date.now();
-    for (const [key, value] of blockMatrix.entries()) {
-      if (now - value.timestamp > 5 * 60 * 1000) {
-        blockMatrix.delete(key);
-      }
-    }
-
-    await Matrix.sendMessage(m.from, confirmButtons, { quoted: m });
+      await gss.sendMessage(m.from, { 
+        react: { text: "✅", key: m.key } 
+      });
       
-  } catch (error) {
-    console.error('Error in block command:', error);
-    
-    const errorButtons = {
-      text: '❌ An error occurred while processing the command.',
-      footer: "Please try again later",
-      buttons: [
-        { buttonId: `${prefix}support`, buttonText: { displayText: "REPORT ERROR" }, type: 1 }
-      ],
-      headerType: 1
-    };
-    
-    await Matrix.sendMessage(m.from, errorButtons, { quoted: m });
+      await gss.sendMessage(m.from, { 
+        image: { url: `https://files.catbox.moe/y3j3kl.jpg` },  
+        caption: "*🔓 CHAT UNBLOCKED*\n\nThis chat has been unblocked by the owner.",
+        buttons: [
+          { buttonId: `${prefix}block`, buttonText: { displayText: '🚫 Block Chat' }, type: 1 },
+          { buttonId: `${prefix}owner`, buttonText: { displayText: '👑 Owner Info' }, type: 1 }
+        ],
+        contextInfo: {
+          mentionedJid: [m.sender]
+        }
+      }, { quoted: m });
+      
+      // Actually unblock the chat after sending the message
+      await gss.updateBlockStatus(m.from, "unblock");
+      
+    } catch (error) {
+      console.error("Unblock command error:", error);
+      await gss.sendMessage(m.from, { 
+        react: { text: "❌", key: m.key } 
+      });
+      await gss.sendMessage(m.from, {
+        text: `_Failed to unblock this chat._\nError: ${error.message}_`
+      }, { quoted: m });
+    }
   }
 };
 
-export default block;
+export default plugins;
