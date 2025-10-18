@@ -1,127 +1,125 @@
-import fs from 'fs';
 import config from '../config.cjs';
 
-// Helper function to convert text to tiny caps
-const toTinyCap = (text) => {
-  const smallCapsMap = {
-    'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ꜰ', 'g': 'ɢ', 'h': 'ʜ', 'i': 'ɪ',
-    'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ʀ',
-    's': 's', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ'
-  };
-  
-  return text.split('').map(char => {
-    const lowerChar = char.toLowerCase();
-    return smallCapsMap[lowerChar] || char;
-  }).join('');
-};
+// You'll need to pass these from your main file
+let socketCreationTime = new Map();
+let activeSockets = new Set();
 
-const alive = async (m, Matrix) => {
-  const uptimeSeconds = process.uptime();
-  const days = Math.floor(uptimeSeconds / (3600 * 24));
-  const hours = Math.floor((uptimeSeconds % (3600 * 24)) / 3600);
-  const minutes = Math.floor((uptimeSeconds % 3600) / 60);
-  const seconds = Math.floor(uptimeSeconds % 60);
-  const uptime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-
-  // Get current time and date
-  const now = new Date();
-  const currentTime = now.toLocaleTimeString();
-  const currentDate = now.toLocaleDateString();
-  
-  // Get user's pushname
-  const pushname = m.pushName || 'User';
-
+const plugins = async (m, gss, { number = m.sender, socketCreationTime: creationTime, activeSockets: sockets } = {}) => {
   const prefix = config.PREFIX;
-  
-  // Check if it's a button response
-  const isButtonResponse = m.message?.buttonsResponseMessage;
-  
-  if (isButtonResponse) {
-    const selectedButtonId = m.message.buttonsResponseMessage.selectedButtonId;
-    
-    if (selectedButtonId === `${prefix}voice`) {
-      const audioUrls = [
-        'https://files.catbox.moe/m0xfku.mp3'
-      ];
+  const bodyText = m.body || '';
+  const cmd = bodyText.startsWith(prefix) ? bodyText.slice(prefix.length).split(" ")[0].toLowerCase() : "";
 
-      const randomAudioUrl = audioUrls[Math.floor(Math.random() * audioUrls.length)];
+  // Alive Plugin
+  if (cmd === 'alive') {
+    try {
+      await gss.sendMessage(m.from, { 
+        react: { text: '🔮', key: m.key } 
+      });
       
-      // Send audio
-      await Matrix.sendMessage(m.from, {
-        audio: { url: randomAudioUrl },
-        mimetype: 'audio/mp4',
-        ptt: true
-      }, { quoted: m });
+      const startTime = creationTime?.get(number) || Date.now();
+      const uptime = Math.floor((Date.now() - startTime) / 1000);
+      const hours = Math.floor(uptime / 3600);
+      const minutes = Math.floor((uptime % 3600) / 60);
+      const seconds = Math.floor(uptime % 60);
+
+      const captionText = `
+*🎀 𝐂𝐀𝐒𝐄𝐘𝐑𝐇𝐎𝐃𝐄𝐒 𝐁𝐎𝐓 🎀*
+*╭─────────────────⊷*
+*┃* ʙᴏᴛ ᴜᴘᴛɪᴍᴇ: ${hours}h ${minutes}m ${seconds}s
+*┃* ᴀᴄᴛɪᴠᴇ ʙᴏᴛs: ${sockets?.size || 1}
+*┃* ʏᴏᴜʀ ɴᴜᴍʙᴇʀ: ${number.split('@')[0]}
+*┃* ᴠᴇʀsɪᴏɴ: ${config.version || '1.0.0'}
+*┃* ᴍᴇᴍᴏʀʏ ᴜsᴀɢᴇ: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB
+*╰───────────────┈⊷*
+
+> *▫️ᴄᴀsᴇʏʀʜᴏᴅᴇs ᴍᴀɪɴ*
+> sᴛᴀᴛᴜs: ONLINE ✅
+> ʀᴇsᴘᴏɴᴅ ᴛɪᴍᴇ: ${Date.now() - m.messageTimestamp * 1000}ms`;
+
+      const aliveMessage = {
+        image: { url: "https://i.ibb.co/fGSVG8vJ/caseyweb.jpg" },
+        caption: `> ᴀᴍ ᴀʟɪᴠᴇ ɴ ᴋɪᴄᴋɪɴɢ 🥳\n\n${captionText}`,
+        buttons: [
+          {
+            buttonId: `${prefix}menu_action`,
+            buttonText: { displayText: '📂 ᴍᴇɴᴜ ᴏᴘᴛɪᴏɴ' },
+            type: 4,
+            nativeFlowInfo: {
+              name: 'single_select',
+              paramsJson: JSON.stringify({
+                title: 'ᴄʟɪᴄᴋ ʜᴇʀᴇ ❏',
+                sections: [
+                  {
+                    title: `ᴄᴀsᴇʏʀʜᴏᴅᴇs  ʙᴏᴛ`,
+                    highlight_label: 'Quick Actions',
+                    rows: [
+                      { title: '📋 ғᴜʟʟ ᴍᴇɴᴜ', description: 'ᴠɪᴇᴡ ᴀʟʟ ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴍᴅs', id: `${prefix}menu` },
+                      { title: '💓 ᴀʟɪᴠᴇ ᴄʜᴇᴄᴋ', description: 'ʀᴇғʀᴇs ʙᴏᴛ sᴛᴀᴛᴜs', id: `${prefix}alive` },
+                      { title: '💫 ᴘɪɴɢ ᴛᴇsᴛ', description: 'ᴄʜᴇᴄᴋ ʀᴇsᴘᴏɴᴅ sᴘᴇᴇᴅ', id: `${prefix}ping` }
+                    ]
+                  },
+                  {
+                    title: "ϙᴜɪᴄᴋ ᴄᴍᴅs",
+                    highlight_label: 'Popular',
+                    rows: [
+                      { title: '🤖 ᴀɪ ᴄʜᴀᴛ', description: 'Start AI conversation', id: `${prefix}ai Hello!` },
+                      { title: '🎵 ᴍᴜsɪᴄ sᴇᴀʀᴄʜ', description: 'Download your favorite songs', id: `${prefix}song` },
+                      { title: '📰 ʟᴀᴛᴇsᴛ ɴᴇᴡs', description: 'Get current news updates', id: `${prefix}news` }
+                    ]
+                  }
+                ]
+              })
+            }
+          },
+          { buttonId: `${prefix}session`, buttonText: { displayText: '🌟 ʙᴏᴛ ɪɴғᴏ' }, type: 1 },
+          { buttonId: `${prefix}active`, buttonText: { displayText: '📈 ʙᴏᴛ sᴛᴀᴛs' }, type: 1 }
+        ],
+        headerType: 1,
+        viewOnce: true,
+        contextInfo: {
+          forwardingScore: 1,
+          isForwarded: true,
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: '120363420261263259@newsletter',
+            newsletterName: 'ᴄᴀsᴇʏʀʜᴏᴅᴇs ʙᴏᴛ🌟',
+            serverMessageId: -1
+          }
+        }
+      };
+
+      await gss.sendMessage(m.from, aliveMessage, { quoted: m });
+    } catch (error) {
+      console.error('Alive command error:', error);
       
-      return; // Exit after sending audio
-    } else if (selectedButtonId === `${prefix}repo`) {
-      // Handle repo button - send only prefix
-      await Matrix.sendMessage(m.from, { 
-        text: prefix 
-      }, { quoted: m });
-      return;
+      const startTime = creationTime?.get(number) || Date.now();
+      const uptime = Math.floor((Date.now() - startTime) / 1000);
+      const hours = Math.floor(uptime / 3600);
+      const minutes = Math.floor((uptime % 3600) / 60);
+      const seconds = Math.floor(uptime % 60);
+
+      const errorMessage = {
+        image: { url: "https://i.ibb.co/fGSVG8vJ/caseyweb.jpg" },
+        caption: `*🤖 ᴄᴀsᴇʏʀʜᴏᴅᴇs ᴍɪɴɪ ᴀʟɪᴠᴇ*\n\n` +
+                `*╭─────〘 ᴄᴀsᴇʏʀʜᴏᴅᴇs 〙───⊷*\n` +
+                `*┃* ᴜᴘᴛɪᴍᴇ: ${hours}h ${minutes}m ${seconds}s\n` +
+                `*┃* sᴛᴀᴛᴜs: ᴏɴʟɪɴᴇ\n` +
+                `*┃* ɴᴜᴍʙᴇʀ: ${number.split('@')[0]}\n` +
+                `*╰──────────────⊷*\n\n` +
+                `Type *${prefix}menu* for commands`,
+        contextInfo: {
+          forwardingScore: 1,
+          isForwarded: true,
+          forwardedNewsletterMessageInfo: {
+            newsletterJid: '120363420261263259@newsletter',
+            newsletterName: 'ᴄᴀsᴇʏʀʜᴏᴅᴇs ʙᴏᴛ🌟',
+            serverMessageId: -1
+          }
+        }
+      };
+
+      await gss.sendMessage(m.from, errorMessage, { quoted: m });
     }
   }
-  
-  // Regular command handling
-  const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(' ')[0].toLowerCase() : '';
-
-  if (!['alive', 'uptime', 'runtime'].includes(cmd)) return;
-
-  const str = `
-╭──❖ 「 *${toTinyCap("Bot Status")}* 」 ❖─
-│ 👤 ʜɪ: *${pushname}*
-│ 🕓 ᴛɪᴍᴇ: *${currentTime}*
-│ 📆 ᴅᴀᴛᴇ: *${currentDate}*
-│ 🧭 ᴜᴘᴛɪᴍᴇ: *${uptime}*
-│ ⚙️ ᴍᴏᴅᴇ: *${config.MODE || 'default'}*
-│ 🔰 ᴠᴇʀsɪᴏɴ: *${config.version || '1.0.0'}*
-╰─────────❖`;
-
-  const buttons = [
-    {
-      buttonId: `${prefix}repo`,
-      buttonText: { displayText: '📂 Repo' },
-      type: 1
-    },
-    {
-      buttonId: `${prefix}voice`,
-      buttonText: { displayText: '🎶 Voice Note' },
-      type: 1
-    }
-  ];
-
-  // Fixed verification contact with proper structure
-  const fakeVCard = {
-    key: {
-      fromMe: false,
-      participant: '0@s.whatsapp.net',
-      remoteJid: "status@broadcast"
-    },
-    message: {
-      contactMessage: {
-        displayName: "ᴄᴀsᴇʏʀʜᴏᴅᴇs ᴀɪ ✅",
-        vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:Caseyrhodes VERIFIED ✅\nORG:CASEYRHODES-TECH BOT;\nTEL;type=CELL;type=VOICE;waid=13135550002:+13135550002\nEND:VCARD`
-      }
-    }
-  };
-
-  const buttonMessage = {
-    image: fs.readFileSync('./media/Casey.jpg'),
-    caption: str,
-    footer: 'Choose an option',
-    buttons: buttons,
-    headerType: 4,
-    contextInfo: {
-      mentionedJid: [m.sender],
-      forwardingScore: 999,
-      isForwarded: true
-    }
-  };
-
-  await Matrix.sendMessage(m.from, buttonMessage, {
-    quoted: fakeVCard // Use the fixed verification contact
-  });
 };
 
-export default alive;
+export default plugins;
