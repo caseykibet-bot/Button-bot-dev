@@ -66,12 +66,12 @@ const tourl = async (m, bot) => {
       const buttons = [
         {
           buttonId: `id-copy-${Date.now()}`,
-          buttonText: { displayText: '📋 𝓒𝓸𝓹𝔂 𝓤𝓡𝓛' }, // Script font style
+          buttonText: { displayText: 'URL 🌸' }, // Script font style
           type: 2
         },
         {
           buttonId: `${prefix}download`,
-          buttonText: { displayText: '⬇️ 𝔻𝕠𝕨𝕟𝕝𝕠𝕒𝕕' }, // Double-struck font style
+          buttonText: { displayText: 'MENU 🧑‍💻' }, // Double-struck font style
           type: 1
         }
       ];
