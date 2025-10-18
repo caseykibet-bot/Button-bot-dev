@@ -23,7 +23,7 @@ const plugins = async (m, gss, { number = m.sender, socketCreationTime: creation
       const seconds = Math.floor(uptime % 60);
 
       const captionText = `
-*🎀 𝐂𝐀𝐒𝐄𝐘𝐑𝐇𝐎𝐃𝐄𝐒 𝐁𝐎𝐓 🎀*
+*𝐂𝐀𝐒𝐄𝐘𝐑𝐇𝐎𝐃𝐄𝐒 AI*
 *╭─────────────────⊷*
 *┃* ʙᴏᴛ ᴜᴘᴛɪᴍᴇ: ${hours}h ${minutes}m ${seconds}s
 *┃* ᴀᴄᴛɪᴠᴇ ʙᴏᴛs: ${sockets?.size || 1}
