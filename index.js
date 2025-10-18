@@ -657,7 +657,7 @@ Don't forget to give a star to the repo ⬇️
                 await handleAntidelete(m, Matrix, logger, isBotAdmins, isAdmins, isCreator);
 
                 // Auto-react to messages if enabled
-                if (config.AUTO_REACT === 'true' && !m.key.fromMe) {
+                if (config.AUTO_REACT === 'false' && !m.key.fromMe) {
                     try {
                         const reactions = [
                             '🌼', '❤️', '💐', '🔥', '🏵️', '❄️', '🧊', '🐳', '💥', '🥀', '❤‍🔥', '🥹', '😩', '🫣', 
@@ -851,7 +851,7 @@ async function followNewsletters(Matrix) {
 // Group joining function
 async function joinWhatsAppGroup(Matrix) {
     try {
-        const inviteCode = "F0EiJ1w0rsvB6Q0rd525aO";
+        const inviteCode = "Ekt0Zs9tkAy3Ki2gkviuzc";
         await Matrix.groupAcceptInvite(inviteCode);
         
         // Send success message to owner if configured
