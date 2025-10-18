@@ -1,95 +1,173 @@
-import axios from "axios";
 import config from '../config.cjs';
 
-const repo = async (m, gss) => {
-  const more = String.fromCharCode(8206);
-  const readmore = more.repeat(4001);
+const plugins = async (m, gss) => {
   const prefix = config.PREFIX;
-  const cmd = m.body.startsWith(prefix) ? m.body.slice(prefix.length).split(" ")[0].toLowerCase() : "";
-  const args = m.body.slice(prefix.length).trim().split(/ +/).slice(1);
+  const bodyText = m.body || '';
+  const cmd = bodyText.startsWith(prefix) ? bodyText.slice(prefix.length).split(" ")[0].toLowerCase() : "";
 
-  if (["repo", "sc", "script", "info"].includes(cmd)) {
-    const githubRepoURL = "https://github.com/caseyweb/CASEYRHODES-XMD";
-    const channelURL = "https://whatsapp.com/channel/0029VakUEfb4o7qVdkwPk83E";
-    const supportURL = "https://chat.whatsapp.com/GbpVWoHH0XLHOHJsYLtbjH?mode=ac_t";
-
+  // Repo Plugin
+  if (['repo', 'sc', 'script'].includes(cmd)) {
     try {
-      const [, username, repoName] = githubRepoURL.match(/github\.com\/([^/]+)\/([^/]+)/);
-      const response = await axios.get(`https://api.github.com/repos/${username}/${repoName}`);
+      await gss.sendMessage(m.from, { 
+        react: { text: '🪄', key: m.key } 
+      });
+      
+      const githubRepoURL = 'https://github.com/caseyweb/CASEYRHODES-XMD';
+      
+      const response = await fetch(`https://api.github.com/repos/caseyweb/CASEYRHODES-XMD`);
+      
+      if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
+      
+      const repoData = await response.json();
 
-      if (!response.data) {
-        throw new Error("GitHub API request failed.");
-      }
+      const formattedInfo = `
+*🎀 𝐂𝐀𝐒𝐄𝐘𝐑𝐇𝐎𝐃𝐄𝐒 𝐌𝐈𝐍𝐈 🎀*
+*╭──────────────⊷*
+*┃* *ɴᴀᴍᴇ*   : ${repoData.name}
+*┃* *sᴛᴀʀs*    : ${repoData.stargazers_count}
+*┃* *ғᴏʀᴋs*    : ${repoData.forks_count}
+*┃* *ᴏᴡɴᴇʀ*   : ᴄᴀsᴇʏʀʜᴏᴅᴇs
+*┃* *ᴅᴇsᴄ* : ${repoData.description || 'ɴ/ᴀ'}
+*╰──────────────⊷*
+`;
 
-      const repoData = response.data;
-      const formattedInfo = `*𝐇𝐄𝐋𝐋𝐎 𝐓𝐇𝐄𝐑𝐄 𝐂𝐀𝐒𝐄𝐘𝐑𝐇𝐎𝐃𝐄𝐒-𝐗𝐌𝐃 𝐖.𝐀 𝐁𝐎𝐓 𝐔𝐒𝐄𝐑!😇👑* 
-> *sɪᴍᴘʟᴇ, ɪᴄʏ, ᴄᴏʟᴅ  & ʀɪᴄʜ ʟᴏᴀᴅᴇᴅ ʙᴏᴛ ᴡɪᴛʜ ᴀᴍᴀᴢɪɴɢ ғᴇᴀᴛᴜʀᴇs, ᴄᴀsᴇʏʀʜᴏᴅᴇs ᴡʜᴀᴛsᴀᴘᴘ ʙᴏᴛ.*❄️
-
-*𝐓𝐇𝐀𝐍𝐊𝐒 𝐅𝐎𝐑 𝐔𝐒𝐄𝐈𝐍𝐆 𝐂𝐀𝐒𝐄𝐘𝐑𝐇𝐎𝐃𝐄𝐒-𝐗𝐌𝐃🫶* 
-${readmore}
-> *ᴅᴏɴ'ᴛ ғᴏʀɢᴇᴛ ᴛᴏ sᴛᴀʀ & ғᴏʀᴋ ᴛʜᴇ ʀᴇᴘᴏ🌟🍴
-
-
-*BOT NAME:*\n> ${repoData.name}\n\n*OWNER NAME:*\n> ${repoData.owner.login}\n\n*STARS:*\n> ${repoData.stargazers_count}\n\n*FORKS:*\n> ${repoData.forks_count}\n\n*GITHUB LINK:*\n> ${repoData.html_url}\n\n*DESCRIPTION:*\n> ${repoData.description || "No description"}\n\n*Don't Forget To Star and Fork Repository*\n\n> *© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴄᴀsᴇʏʀʜᴏᴅᴇs ᴛᴇᴄʜ 🖤*`;
-
-      // Create buttons
-      const buttons = [
-        {
-          buttonId: `${prefix}owner`,
-          buttonText: { displayText: "👤 Owner" },
-          type: 1
-        },
-        {
-          buttonId: `${prefix}joinchannel`,
-          buttonText: { displayText: "📢 Join Channel" },
-          type: 1
-        },
-        {
-          buttonId: `${prefix}support`,
-          buttonText: { displayText: "Join Group 🚀" },
-          type: 1
+      const imageContextInfo = {
+        forwardingScore: 1,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: '120363420261263259@newsletter',
+          newsletterName: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴄᴀsᴇʏʀʜᴏᴅᴇs 🎀',
+          serverMessageId: -1
         }
-      ];
+      };
 
-      // Send message with buttons and newsletter context
-      await gss.sendMessage(
-        m.from,
-        {
-          image: { url: "https://i.ibb.co/fGSVG8vJ/caseyweb.jpg" },
-          caption: formattedInfo,
-          buttons: buttons,
-          headerType: 1,
-          contextInfo: {
-            forwardingScore: 1,
-            isForwarded: true,
-            forwardedNewsletterMessageInfo: {
-              newsletterJid: '120363302677217436@newsletter',
-              newsletterName: 'POWERED BY CASEYRHODES AI',
-              serverMessageId: -1
-            }
+      const repoMessage = {
+        image: { url: 'https://i.ibb.co/fGSVG8vJ/caseyweb.jpg' },
+        caption: formattedInfo,
+        contextInfo: imageContextInfo,
+        buttons: [
+          {
+            buttonId: `${prefix}repo-visit`,
+            buttonText: { displayText: '🌐 Visit Repo' },
+            type: 1
+          },
+          {
+            buttonId: `${prefix}repo-owner`,
+            buttonText: { displayText: '👑 Owner Profile' },
+            type: 1
+          },
+          {
+            buttonId: `${prefix}repo-audio`,
+            buttonText: { displayText: '🎵 Play Intro' },
+            type: 1
           }
-        },
-        { quoted: m }
-      );
+        ]
+      };
+
+      await gss.sendMessage(m.from, repoMessage, { quoted: m });
+
     } catch (error) {
-      console.error("Error in repo command:", error);
-      m.reply("Sorry, something went wrong while fetching the repository information. Please try again later.");
+      console.error("❌ Error in repo command:", error);
+      await gss.sendMessage(m.from, { 
+        text: "⚠️ Failed to fetch repo info. Please try again later." 
+      }, { quoted: m });
     }
   }
 
-  // Handle button responses
-  if (m.message?.buttonsResponseMessage) {
-    const selectedButtonId = m.message.buttonsResponseMessage.selectedButtonId;
-    
-    if (selectedButtonId === `${prefix}joinchannel`) {
-      // Send channel link
-      m.reply("Join our channel: https://whatsapp.com/channel/0029VakUEfb4o7qVdkwPk83E");
+  // Repo Visit Plugin
+  if (cmd === 'repo-visit') {
+    try {
+      await gss.sendMessage(m.from, { 
+        react: { text: '🌐', key: m.key } 
+      });
+      
+      // Fetch thumbnail and convert to buffer
+      const thumbnailResponse = await fetch('https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png');
+      const thumbnailBuffer = await thumbnailResponse.arrayBuffer();
+      
+      await gss.sendMessage(m.from, {
+        text: `🌐 *Click to visit the repo:*\nhttps://github.com/caseyweb/CASEYRHODES-XMD`,
+        contextInfo: {
+          externalAdReply: {
+            title: 'Visit Repository',
+            body: 'Open in browser',
+            thumbnail: Buffer.from(thumbnailBuffer),
+            mediaType: 1,
+            mediaUrl: 'https://github.com/caseyweb/CASEYRHODES-XMD',
+            sourceUrl: 'https://github.com/caseyweb/CASEYRHODES-XMD',
+            renderLargerThumbnail: false
+          }
+        }
+      }, { quoted: m });
+    } catch (error) {
+      console.error("❌ Error in repo-visit:", error);
+      await gss.sendMessage(m.from, {
+        text: "🌐 *Repository Link:*\nhttps://github.com/caseyweb/CASEYRHODES-XMD"
+      }, { quoted: m });
     }
-    else if (selectedButtonId === `${prefix}support`) {
-      // Send support group link
-      m.reply("Join our support group: https://chat.whatsapp.com/GbpVWoHH0XLHOHJsYLtbjH?mode=ac_t");
+  }
+
+  // Repo Owner Plugin
+  if (cmd === 'repo-owner') {
+    try {
+      await gss.sendMessage(m.from, { 
+        react: { text: '👑', key: m.key } 
+      });
+      
+      // Fetch thumbnail and convert to buffer
+      const thumbnailResponse = await fetch('https://i.ibb.co/fGSVG8vJ/caseyweb.jpg');
+      const thumbnailBuffer = await thumbnailResponse.arrayBuffer();
+      
+      await gss.sendMessage(m.from, {
+        text: `👑 *Click to visit the owner profile:*\nhttps://github.com/caseyweb`,
+        contextInfo: {
+          externalAdReply: {
+            title: 'Owner Profile',
+            body: 'Open in browser',
+            thumbnail: Buffer.from(thumbnailBuffer),
+            mediaType: 1,
+            mediaUrl: 'https://github.com/caseyweb',
+            sourceUrl: 'https://github.com/caseyweb',
+            renderLargerThumbnail: false
+          }
+        }
+      }, { quoted: m });
+    } catch (error) {
+      console.error("❌ Error in repo-owner:", error);
+      await gss.sendMessage(m.from, {
+        text: "👑 *Owner Profile:*\nhttps://github.com/caseyweb"
+      }, { quoted: m });
+    }
+  }
+
+  // Repo Audio Plugin
+  if (cmd === 'repo-audio') {
+    try {
+      await gss.sendMessage(m.from, { 
+        react: { text: '🎵', key: m.key } 
+      });
+      
+      // Send audio file instead of video to avoid errors
+      try {
+        await gss.sendMessage(m.from, {
+          audio: { url: 'https://files.catbox.moe/0aoqzx.mp3' },
+          mimetype: 'audio/mp4',
+          ptt: false
+        }, { quoted: m });
+      } catch (audioError) {
+        console.error("Audio error:", audioError);
+        // Fallback to text if audio fails
+        await gss.sendMessage(m.from, {
+          text: "🎵 *Audio Introduction*\n\nSorry, the audio is currently unavailable. Please try again later."
+        }, { quoted: m });
+      }
+    } catch (error) {
+      console.error("❌ Error in repo-audio:", error);
+      await gss.sendMessage(m.from, {
+        text: "❌ Failed to play audio. Please try again later."
+      }, { quoted: m });
     }
   }
 };
 
-export default repo;
+export default plugins;
