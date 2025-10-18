@@ -4,6 +4,7 @@ import config from '../config.cjs';
 
 const plugins = async (m, gss) => {
   const prefix = config.PREFIX;
+  const BASE_URL = 'https://noobs-api.top';
   const bodyText = m.body || '';
   const cmd = bodyText.startsWith(prefix) ? bodyText.slice(prefix.length).split(" ")[0].toLowerCase() : "";
   const args = bodyText.startsWith(prefix) ? bodyText.slice(prefix.length).trim().split(/ +/).slice(1) : [];
