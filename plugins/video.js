@@ -88,8 +88,8 @@ const plugins = async (m, gss) => {
     }
   }
 
-  // Play Audio Plugin
-  if (cmd === 'song) {
+  // Play Audio Plugin - FIXED: Added missing single quote
+  if (cmd === 'song') {
     if (!text) {
       return await gss.sendMessage(m.from, {
         text: '🎵 *Music Player*\nPlease provide a song name to play.'
