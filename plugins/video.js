@@ -62,10 +62,10 @@ const plugins = async (m, gss) => {
       const fileName = `${safeTitle}.mp4`;
       const apiURL = `${BASE_URL}/dipto/ytDl3?link=${encodeURIComponent(video.videoId)}&format=mp4`;
 
-      const response = await axios.get(apiURL);
+      const response = await axios.get(apiURL, { timeout: 30000 });
       const data = response.data;
 
-      if (!data.downloadLink) {
+      if (!data || !data.downloadLink) {
         return await gss.sendMessage(m.from, {
           text: '❌ *Download Failed*\nFailed to retrieve the MP4 download link. Please try again later.',
           contextInfo: {
@@ -80,35 +80,59 @@ const plugins = async (m, gss) => {
         }, { quoted: m });
       }
 
-      // Send video with enhanced metadata and newsletter
-      await gss.sendMessage(m.from, {
-        video: { url: data.downloadLink },
-        mimetype: 'video/mp4',
-        fileName: fileName,
-        caption: `🎬 *${video.title}*\n⏱️ ${video.timestamp} | 👁️ ${video.views}\n\n> 📥 Downloaded by CASEYRHODES AI🧑‍💻`,
-        contextInfo: {
-          forwardingScore: 1,
-          isForwarded: true,
-          forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363420261263259@newsletter',
-            newsletterName: 'CASEYRHODES AI🧑‍💻',
-            serverMessageId: -1
-          },
-          externalAdReply: {
-            title: video.title.substring(0, 40),
-            body: `Duration: ${video.timestamp} | Views: ${video.views}`,
-            mediaType: 2, // 2 for video
-            thumbnailUrl: video.thumbnail,
-            sourceUrl: `https://youtu.be/${video.videoId}`,
-            renderLargerThumbnail: false
+      // Download video buffer first to ensure it works
+      try {
+        const videoResponse = await axios.get(data.downloadLink, { 
+          responseType: 'arraybuffer',
+          timeout: 60000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
           }
-        }
-      }, { quoted: m });
+        });
+        
+        const videoBuffer = Buffer.from(videoResponse.data, 'binary');
+        
+        // Send video with buffer instead of URL
+        await gss.sendMessage(m.from, {
+          video: videoBuffer,
+          mimetype: 'video/mp4',
+          fileName: fileName,
+          caption: `🎬 *${video.title}*\n⏱️ ${video.timestamp} | 👁️ ${video.views}\n\n> 📥 Downloaded by CASEYRHODES AI🧑‍💻`,
+          contextInfo: {
+            forwardingScore: 1,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+              newsletterJid: '120363420261263259@newsletter',
+              newsletterName: 'CASEYRHODES AI🧑‍💻',
+              serverMessageId: -1
+            }
+          }
+        }, { quoted: m });
+
+      } catch (downloadError) {
+        console.error('Video download error:', downloadError);
+        // Fallback: try sending with URL if buffer fails
+        await gss.sendMessage(m.from, {
+          video: { url: data.downloadLink },
+          mimetype: 'video/mp4',
+          fileName: fileName,
+          caption: `🎬 *${video.title}*\n⏱️ ${video.timestamp} | 👁️ ${video.views}\n\n> 📥 Downloaded by CASEYRHODES AI🧑‍💻`,
+          contextInfo: {
+            forwardingScore: 1,
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+              newsletterJid: '120363420261263259@newsletter',
+              newsletterName: 'CASEYRHODES AI🧑‍💻',
+              serverMessageId: -1
+            }
+          }
+        }, { quoted: m });
+      }
 
     } catch (err) {
       console.error('[VIDEO] Error:', err);
       await gss.sendMessage(m.from, {
-        text: '❌ *Error Occurred*\nFailed to process your video request. Please try again later.',
+        text: `❌ *Error Occurred*\nFailed to process your video request: ${err.message}\n\nPlease try again later.`,
         contextInfo: {
           forwardingScore: 1,
           isForwarded: true,
@@ -172,10 +196,10 @@ const plugins = async (m, gss) => {
       const fileName = `${safeTitle}.mp3`;
       const apiURL = `${BASE_URL}/dipto/ytDl3?link=${encodeURIComponent(video.videoId)}&format=mp3`;
 
-      const response = await axios.get(apiURL);
+      const response = await axios.get(apiURL, { timeout: 30000 });
       const data = response.data;
 
-      if (!data.downloadLink) {
+      if (!data || !data.downloadLink) {
         return await gss.sendMessage(m.from, {
           text: '❌ *Download Failed*\nFailed to retrieve the MP3 download link. Please try again later.',
           contextInfo: {
@@ -190,28 +214,41 @@ const plugins = async (m, gss) => {
         }, { quoted: m });
       }
 
-      // Send audio with small thumbnail (NO NEWSLETTER on audio)
-      await gss.sendMessage(m.from, {
-        audio: { url: data.downloadLink },
-        mimetype: 'audio/mpeg',
-        fileName: fileName,
-        ptt: false,
-        contextInfo: {
-          externalAdReply: {
-            title: video.title.substring(0, 40),
-            body: `Duration: ${video.timestamp}`,
-            mediaType: 1,
-            thumbnailUrl: video.thumbnail,
-            sourceUrl: `https://youtu.be/${video.videoId}`,
-            renderLargerThumbnail: false
+      // Download audio buffer first
+      try {
+        const audioResponse = await axios.get(data.downloadLink, { 
+          responseType: 'arraybuffer',
+          timeout: 60000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
           }
-        }
-      }, { quoted: m });
+        });
+        
+        const audioBuffer = Buffer.from(audioResponse.data, 'binary');
+        
+        // Send audio with buffer
+        await gss.sendMessage(m.from, {
+          audio: audioBuffer,
+          mimetype: 'audio/mpeg',
+          fileName: fileName,
+          ptt: false
+        }, { quoted: m });
+
+      } catch (downloadError) {
+        console.error('Audio download error:', downloadError);
+        // Fallback: try sending with URL
+        await gss.sendMessage(m.from, {
+          audio: { url: data.downloadLink },
+          mimetype: 'audio/mpeg',
+          fileName: fileName,
+          ptt: false
+        }, { quoted: m });
+      }
 
     } catch (err) {
       console.error('[SONG] Error:', err);
       await gss.sendMessage(m.from, {
-        text: '❌ *Error Occurred*\nFailed to process your song request. Please try again later.',
+        text: `❌ *Error Occurred*\nFailed to process your song request: ${err.message}\n\nPlease try again later.`,
         contextInfo: {
           forwardingScore: 1,
           isForwarded: true,
