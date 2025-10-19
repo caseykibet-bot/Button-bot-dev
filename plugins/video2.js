@@ -243,7 +243,7 @@ const video = async (message, client) => {
     // Clean up expired sessions
     cleanupExpiredSessions();
 
-    if (command === "video") {
+    if (command === "video2") {
       await sendCustomReaction(client, message, "⏳");
       
       if (args.length === 0 || !args.join(" ")) {
