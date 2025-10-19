@@ -28,9 +28,8 @@ function toFancyFont(text) {
 const streamPipeline = promisify(pipeline);
 const tmpDir = os.tmpdir();
 
-// Kaiz-API configuration
-const KAIZ_API_KEY = 'cf2ca612-296f-45ba-abbc-473f18f991eb';
-const KAIZ_API_URL = 'https://kaiz-apis.gleeze.com/api/ytdown-mp3';
+// Updated API configuration from previous chat
+const BASE_URL = 'https://noobs-api.top';
 
 function getYouTubeThumbnail(videoId, quality = 'hqdefault') {
   const cacheKey = `${videoId}_${quality}`;
@@ -108,13 +107,15 @@ async function fetchVideoInfo(text) {
   }
 }
 
-// Utility function to fetch audio from Kaiz-API with timeout
+// Updated utility function to fetch audio from noobs-api
 async function fetchAudioData(videoUrl) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
   
   try {
-    const apiUrl = `${KAIZ_API_URL}?url=${encodeURIComponent(videoUrl)}&apikey=${KAIZ_API_KEY}`;
+    const videoId = extractYouTubeId(videoUrl);
+    const apiUrl = `${BASE_URL}/dipto/ytDl3?link=${encodeURIComponent(videoId)}&format=mp3`;
+    
     const response = await fetch(apiUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -125,9 +126,9 @@ async function fetchAudioData(videoUrl) {
     if (!response.ok) throw new Error('API request failed');
     
     const data = await response.json();
-    if (!data?.download_url) throw new Error('Invalid API response');
+    if (!data?.downloadLink) throw new Error('Invalid API response');
     
-    return data;
+    return { download_url: data.downloadLink };
   } finally {
     clearTimeout(timeout);
   }
@@ -243,7 +244,7 @@ const play = async (message, client) => {
     cleanupExpiredSessions();
 
     if (command === "play") {
-      await sendCustomReaction(client, message, "⏳");
+      await sendCustomReaction(client, message, "🎵");
       
       if (args.length === 0 || !args.join(" ")) {
         await sendCustomReaction(client, message, "❌");
@@ -259,7 +260,7 @@ const play = async (message, client) => {
         // Fetch video info using the new logic
         const { url: videoUrl, info: videoInfo } = await fetchVideoInfo(query);
         
-        // Fetch audio data from Kaiz-API
+        // Fetch audio data from noobs-api
         const apiData = await fetchAudioData(videoUrl);
         
         if (!apiData.download_url) {
@@ -314,16 +315,13 @@ const play = async (message, client) => {
           }
         ];
         
-        // Use a default footer if config is not available
-        const footer = (typeof config !== 'undefined' && config.FOOTER) || "> ᴍᴀᴅᴇ ᴡɪᴛʜ 🤍 ʙʏ ᴄᴀsᴇʏʀʜᴏᴅᴇs ᴀɪ";
-        
         // Newsletter context info
         const newsletterContext = {
           forwardingScore: 1,
           isForwarded: true,
           forwardedNewsletterMessageInfo: {
-            newsletterJid: '120363302677217436@newsletter',
-            newsletterName: 'POWERED BY CASEYRHODES TECH',
+            newsletterJid: '120363420261263259@newsletter',
+            newsletterName: 'CASEYRHODES AI🧑‍💻',
             serverMessageId: -1
           }
         };
@@ -335,7 +333,6 @@ const play = async (message, client) => {
             caption: songInfo,
             buttons: buttons,
             mentions: [message.sender],
-            footer: footer,
             headerType: 1,
             contextInfo: newsletterContext
           }, { quoted: message });
@@ -344,7 +341,6 @@ const play = async (message, client) => {
             text: songInfo,
             buttons: buttons,
             mentions: [message.sender],
-            footer: footer,
             contextInfo: newsletterContext
           }, { quoted: message });
         }
