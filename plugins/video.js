@@ -13,7 +13,7 @@ const plugins = async (m, gss) => {
   const BASE_URL = config.BASE_URL || 'https://noobs-api.top';
 
   // Video Download Plugin
-  if (cmd === 'video') {
+  if (cmd === 'video2') {
     if (!text) {
       return await gss.sendMessage(m.from, {
         text: '🎬 *Video Downloader*\nPlease provide a video name to download.'
