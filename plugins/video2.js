@@ -243,7 +243,7 @@ const video = async (message, client) => {
     // Clean up expired sessions
     cleanupExpiredSessions();
 
-    if (command === "video2") {
+    if (command === "video") {
       await sendCustomReaction(client, message, "⏳");
       
       if (args.length === 0 || !args.join(" ")) {
@@ -407,7 +407,7 @@ const video = async (message, client) => {
         const newsletterContext = {
           externalAdReply: {
             title: session.videoTitle.substring(0, 30) || 'Video Download',
-            body: 'Powered by CASEYRHODES API',
+            body: 'Powered by CASEYRHODES AP1',
             mediaType: 2, // 2 for video
             sourceUrl: session.videoUrl,
             thumbnail: thumbnailBuffer,
