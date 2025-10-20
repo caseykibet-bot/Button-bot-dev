@@ -98,7 +98,7 @@ const menu = async (m, Matrix) => {
         name: "cta_url",
         buttonParamsJson: JSON.stringify({
           display_text: "📚Follow Channel",
-          url: `https://whatsapp.com/channel/0029VbAUmPuDJ6GuVsg8YC3R`
+          url: `https://whatsapp.com/channel/0029Vb6TqBXGk1Ftb9397f0r`
         }),
       },
     ];
