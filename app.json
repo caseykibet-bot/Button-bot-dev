@@ -6,7 +6,7 @@
   "repository": "https://github.com/caseyweb/CASEYRHODES-AI",
   "stack": "container",
   "env": { 
-      "SESSION_ID": {
+    "SESSION_ID": {
       "description": "your session id",
       "required": true,
       "value": ""
@@ -41,12 +41,11 @@
       "required": true,
       "value": "true"
     },
-       "AUTO_STATUS_REACT": {
+    "AUTO_STATUS_REACT": {
       "description": "make it true for automatic status reaction or like.",
       "required": true,
       "value": "true"
     }, 
-    
     "AUTO_STATUS_SEEN": {
       "description": "make it true if you want bot to view status",
       "required": false,
@@ -77,7 +76,6 @@
       "required": false,
       "value": "false"
     },
-    
     "AUTO_REACT": {
       "description": "Make it true if you want react on every message.",
       "required": false,
@@ -85,13 +83,13 @@
     },
     "AUTO_TYPING": {
       "description": "make it true if you want bot to show typing",
-      "required": false,
-      "value": "false"
+      "required": true,
+      "value": "true"
     },
     "AUTO_RECORDING": {
       "description": "make it true if you want bot to show recording audio",
       "required": false,
-      "value": "true"
+      "value": "false"
     },
     "ALWAYS_ONLINE": {
       "description": "make it true if you want bot to show always online",
@@ -112,7 +110,7 @@
       "description": "make it true if you want to enable auto welcome",
       "required": false,
       "value": "true" 
-      },
+    },
     "ANTILINK": {
       "description": "make it true if you want to enable auto delete links",
       "required": false,
@@ -123,8 +121,8 @@
       "required": false,
       "value": "."
     }
-    },
-    "buildpacks": [
+  },
+  "buildpacks": [
     {
       "url": "heroku/nodejs"
     },
@@ -139,4 +137,3 @@
     }
   ]
 }
-
