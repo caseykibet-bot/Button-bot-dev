@@ -270,7 +270,7 @@ const handleOwnerResponse = (m, Matrix) => {
     
     const ownerInfo = {
       image: { url: "https://files.catbox.moe/dqut9p.jpg" },
-      caption: `*👨‍💻 DEVELOPMENT TEAM*\n\n🇰🇪 *Lead Developer:* CaseyRhodes Tech\n• Primary Owner & Creator\n• Location: Kenya\n• Expertise: AI Integration, Bot Development\n• Vision: Making AI accessible to everyone\n\n🤖 *Technical Partner:* CASPER TECH\n• Backend Systems Specialist\n• API Management & Infrastructure\n• Ensures reliable service delivery\n\n*Our Collaboration:*\nCaseyRhodes Tech's innovative vision combined with technical expertise, delivering you a world-class AI experience right here from Kenya.\n\n*Contact & Support:*\nFor technical support, feature requests, or collaboration inquiries, reach out through the support channels.\n\n*Made with ❤️ in Kenya* 🇰🇪`,
+      caption: `*👨‍💻 DEVELOPMENT TEAM*\n\n🇰🇪 *Lead Developer:* CaseyRhodes Tech\n• Primary Owner & Creator\n• Location: Kenya\n• Expertise: AI Integration, Bot Development\n• Vision: Making AI accessible to everyone\n\n🤖 *Technical Partner:* FROST XMD\n• Backend Systems Specialist\n• API Management & Infrastructure\n• Ensures reliable service delivery\n\n*Our Collaboration:*\nCaseyRhodes Tech's innovative vision combined with technical expertise, delivering you a world-class AI experience right here from Kenya.\n\n*Contact & Support:*\nFor technical support, feature requests, or collaboration inquiries, reach out through the support channels.\n\n*Made with ❤️ in Kenya* 🇰🇪`,
       footer: "CaseyRhodes Tech - Kenyan Innovation",
       buttons: [
         { buttonId: `${prefix}menu`, buttonText: { displayText: "MAIN MENU" }, type: 1 },
