@@ -28,7 +28,7 @@ const casey = async (m, Matrix) => {
         isForwarded: true,
         forwardedNewsletterMessageInfo: {
           newsletterJid: '120363420261263259@newsletter',
-          newsletterName: 'CASEYRHODES AI🧑‍💻',
+          newsletterName: 'CASEYRHODES-AI 🧑‍💻',
           serverMessageId: -1
         }
       }
@@ -214,7 +214,7 @@ const getCustomResponse = (text, prefix, cmd) => {
   // Check for owner/developer related queries
   if (lowerText.includes('owner') || lowerText.includes('developer') || lowerText.includes('creator') || 
       lowerText.includes('who made you') || lowerText.includes('who created you') || 
-      lowerText.includes('who developed you') || lowerText.includes('who built you')) {
+      lowerText.includes('who developed you') || lowerText.includes('who owns you')) {
     
     return {
       image: { url: "https://files.catbox.moe/dqut9p.jpg" },
