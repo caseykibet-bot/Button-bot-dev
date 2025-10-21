@@ -83,7 +83,7 @@ const menu = async (m, Matrix) => {
         name: "quick_reply",
         buttonParamsJson: JSON.stringify({
           display_text: "💬message",
-          id: "message"
+          id: ".menu"
         })
       },
       {
