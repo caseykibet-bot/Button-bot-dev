@@ -21,6 +21,19 @@ const casey = async (m, Matrix) => {
 
     const text = body.slice(prefix.length + cmd.length).trim();
 
+    // Newsletter context info
+    const newsletterContext = {
+      contextInfo: {
+        forwardingScore: 1,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: '120363420261263259@newsletter',
+          newsletterName: 'CASEYRHODES AI🧑‍💻',
+          serverMessageId: -1
+        }
+      }
+    };
+
     // Check if user provided a question/message
     if (!text) {
       const buttonMessage = {
@@ -31,7 +44,8 @@ const casey = async (m, Matrix) => {
           { buttonId: `${prefix}aimenu`, buttonText: { displayText: "AI MENU" }, type: 1 },
           { buttonId: `${prefix}menu`, buttonText: { displayText: "MAIN MENU" }, type: 1 }
         ],
-        headerType: 4
+        headerType: 4,
+        ...newsletterContext
       };
       return await Matrix.sendMessage(m.from, buttonMessage, { quoted: m });
     }
@@ -46,7 +60,7 @@ const casey = async (m, Matrix) => {
           key: m.key 
         } 
       });
-      return await Matrix.sendMessage(m.from, customResponse, { quoted: m });
+      return await Matrix.sendMessage(m.from, { ...customResponse, ...newsletterContext }, { quoted: m });
     }
 
     // Continue with API calls for other queries
@@ -98,7 +112,8 @@ const casey = async (m, Matrix) => {
             { buttonId: `${prefix}aimenu`, buttonText: { displayText: "AI MENU" }, type: 1 },
             { buttonId: `${prefix}bowner`, buttonText: { displayText: "CONTACT OWNER" }, type: 1 }
           ],
-          headerType: 4
+          headerType: 4,
+          ...newsletterContext
         };
         
         return await Matrix.sendMessage(m.from, errorButtons, { quoted: m });
@@ -120,6 +135,7 @@ const casey = async (m, Matrix) => {
     let aiName = 'Casey AI';
     if (cmd === 'ai') aiName = 'General AI';
     if (cmd === 'gemini') aiName = 'Gemini AI';
+    if (cmd === 'gpt') aiName = 'Chat GPT';
 
     // Send the AI response with buttons
     const aiResponse = {
@@ -131,7 +147,8 @@ const casey = async (m, Matrix) => {
         { buttonId: `${prefix}menu`, buttonText: { displayText: "MAIN MENU" }, type: 1 },
         { buttonId: `${prefix}owner`, buttonText: { displayText: "INFO" }, type: 1 }
       ],
-      headerType: 4
+      headerType: 4,
+      ...newsletterContext
     };
 
     await Matrix.sendMessage(m.from, aiResponse, { quoted: m });
@@ -155,7 +172,8 @@ const casey = async (m, Matrix) => {
         { buttonId: `${prefix}aimenu`, buttonText: { displayText: "AI MENU" }, type: 1 },
         { buttonId: `${prefix}owner`, buttonText: { displayText: "CONTACT OWNER" }, type: 1 }
       ],
-      headerType: 4
+      headerType: 4,
+      ...newsletterContext
     };
     
     await Matrix.sendMessage(m.from, errorButtons, { quoted: m });
@@ -175,7 +193,23 @@ const getCustomResponse = (text, prefix, cmd) => {
   } else if (cmd === 'gemini') {
     aiName = 'Gemini AI';
     developer = 'Google & CaseyRhodes Tech';
+  } else if (cmd === 'gpt') {
+    aiName = 'Chat GPT';
+    developer = 'OpenAI & CaseyRhodes Tech';
   }
+
+  // Newsletter context info
+  const newsletterContext = {
+    contextInfo: {
+      forwardingScore: 1,
+      isForwarded: true,
+      forwardedNewsletterMessageInfo: {
+        newsletterJid: '120363420261263259@newsletter',
+        newsletterName: 'CASEYRHODES AI🧑‍💻',
+        serverMessageId: -1
+      }
+    }
+  };
 
   // Check for owner/developer related queries
   if (lowerText.includes('owner') || lowerText.includes('developer') || lowerText.includes('creator') || 
@@ -191,7 +225,8 @@ const getCustomResponse = (text, prefix, cmd) => {
         { buttonId: `${prefix}aimenu`, buttonText: { displayText: "AI MENU" }, type: 1 },
         { buttonId: `${prefix}owner`, buttonText: { displayText: "GET SUPPORT" }, type: 1 }
       ],
-      headerType: 4
+      headerType: 4,
+      ...newsletterContext
     };
   }
   
@@ -210,7 +245,8 @@ const getCustomResponse = (text, prefix, cmd) => {
         { buttonId: `${prefix}aimenu`, buttonText: { displayText: "AI MENU" }, type: 1 },
         { buttonId: `${prefix}bowner`, buttonText: { displayText: "MEET DEVELOPERS" }, type: 1 }
       ],
-      headerType: 4
+      headerType: 4,
+      ...newsletterContext
     };
   }
 
@@ -228,7 +264,8 @@ const getCustomResponse = (text, prefix, cmd) => {
         { buttonId: `${prefix}bowner`, buttonText: { displayText: "MEET DEVELOPERS" }, type: 1 },
         { buttonId: `${prefix}menu`, buttonText: { displayText: "MAIN MENU" }, type: 1 }
       ],
-      headerType: 4
+      headerType: 4,
+      ...newsletterContext
     };
   }
 
@@ -245,7 +282,8 @@ const getCustomResponse = (text, prefix, cmd) => {
         { buttonId: `${prefix}bowner`, buttonText: { displayText: "MEET DEVELOPERS" }, type: 1 },
         { buttonId: `${prefix}menu`, buttonText: { displayText: "MAIN MENU" }, type: 1 }
       ],
-      headerType: 4
+      headerType: 4,
+      ...newsletterContext
     };
   }
 
@@ -268,6 +306,19 @@ const handleOwnerResponse = (m, Matrix) => {
       } 
     });
     
+    // Newsletter context info
+    const newsletterContext = {
+      contextInfo: {
+        forwardingScore: 1,
+        isForwarded: true,
+        forwardedNewsletterMessageInfo: {
+          newsletterJid: '120363420261263259@newsletter',
+          newsletterName: 'CASEYRHODES AI🧑‍💻',
+          serverMessageId: -1
+        }
+      }
+    };
+
     const ownerInfo = {
       image: { url: "https://files.catbox.moe/dqut9p.jpg" },
       caption: `*👨‍💻 DEVELOPMENT TEAM*\n\n🇰🇪 *Lead Developer:* CaseyRhodes Tech\n• Primary Owner & Creator\n• Location: Kenya\n• Expertise: AI Integration, Bot Development\n• Vision: Making AI accessible to everyone\n\n🤖 *Technical Partner:* FROST XMD\n• Backend Systems Specialist\n• API Management & Infrastructure\n• Ensures reliable service delivery\n\n*Our Collaboration:*\nCaseyRhodes Tech's innovative vision combined with technical expertise, delivering you a world-class AI experience right here from Kenya.\n\n*Contact & Support:*\nFor technical support, feature requests, or collaboration inquiries, reach out through the support channels.\n\n*Made with ❤️ in Kenya* 🇰🇪`,
@@ -277,7 +328,8 @@ const handleOwnerResponse = (m, Matrix) => {
         { buttonId: `${prefix}owner`, buttonText: { displayText: "SUPPORT" }, type: 1 },
         { buttonId: `${prefix}aimenu`, buttonText: { displayText: "AI COMMANDS" }, type: 1 }
       ],
-      headerType: 4
+      headerType: 4,
+      ...newsletterContext
     };
     
     return Matrix.sendMessage(m.from, ownerInfo, { quoted: m });
